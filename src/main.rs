@@ -4,7 +4,9 @@ use lazy_static::lazy_static;
 const PIECE_SIZE : usize = 4;
 type Layout = [[u8; PIECE_SIZE]; PIECE_SIZE];
 const EMPTY_LAYOUT : Layout = [[0; PIECE_SIZE]; PIECE_SIZE];
-const FILLER_VALUE : u8 = 255;
+const WALL_VALUE : u8 = 100;
+const DAY_VALUE : u8 = WALL_VALUE - 1;
+const MONTH_VALUE : u8 = WALL_VALUE - 2;
 
 #[derive(Debug)]
 struct Piece
@@ -17,33 +19,64 @@ struct Piece
 
 struct Board
 {
-    val : [[u8; 7]; 7],
+    values : [[u8; 7]; 7],
 }
 
 
 impl Board
 {
-    fn new( month: u8, day: u8 )
+    fn new( _month: u8, _day: u8 ) -> Self
     {
+        if _month <= 0 || _month > 12 || _day <= 0 || _day > 31
+        {
+            panic!("Invalidate date supplied");
+        }
+
         let mut b : [[u8; 7]; 7] = [[0; 7]; 7];
 
         // fill top right
-        b[0][6] = FILLER_VALUE;
-        b[1][6] = FILLER_VALUE;
+        b[0][6] = WALL_VALUE;
+        b[1][6] = WALL_VALUE;
 
         // fill in bottom right
-        b[6][6] = FILLER_VALUE;
-        b[6][5] = FILLER_VALUE;
-        b[6][4] = FILLER_VALUE;
-        b[6][3] = FILLER_VALUE;
+        b[6][6] = WALL_VALUE;
+        b[6][5] = WALL_VALUE;
+        b[6][4] = WALL_VALUE;
+        b[6][3] = WALL_VALUE;
+
+        let month = _month - 1;
+        let day = _day - 1;
+
+        
 
         // fill in month
-        b[month / 6 as usize][month % 6 as usize] = FILLER_VALUE;
+        b[(month / 6) as usize][(month % 6) as usize] = MONTH_VALUE;
 
         // fill in date
-        b[day / 7 + 2 as usize][day % 7 as usize] = FILLER_VALUE;
+        b[(day / 7 + 2) as usize][(day % 7) as usize] = DAY_VALUE;
 
-        Board { val : b }
+        Board { values : b }
+    }
+
+    fn print(&self)
+    {
+        for row in self.values
+        {
+            for value in row
+            {
+                match value
+                {
+                    0 => print!("."),
+                    WALL_VALUE => print!("X"),
+                    DAY_VALUE => print!("D"),
+                    MONTH_VALUE => print!("M"),
+                    _ => print!("{}", value),
+                }
+                print!(" ");
+            }
+
+            println!();
+        }
     }
 }
 
@@ -193,6 +226,11 @@ lazy_static! {
 
 
 fn main() {
-    println!("{}", ALL_PIECES.len());
-    println!("{:?}", ALL_PIECES[3]);
+
+    let b = Board::new(1, 1);
+
+    b.print();
+
+   // println!("{}", ALL_PIECES.len());
+ //   println!("{:?}", ALL_PIECES[3]);
 }
