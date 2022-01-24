@@ -47,8 +47,6 @@ impl Board
         let month = _month - 1;
         let day = _day - 1;
 
-        
-
         // fill in month
         b[(month / 6) as usize][(month % 6) as usize] = MONTH_VALUE;
 
