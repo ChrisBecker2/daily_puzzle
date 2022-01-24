@@ -17,7 +17,6 @@ struct Layout
 {
     width: usize,
     height: usize,
-    sum: u32,
     values: LayoutValues,
 }
 
@@ -138,35 +137,8 @@ impl Board
 
 fn add_rotations( shape: LayoutValues, width: usize, height: usize, orientations: &mut Vec<Layout> )
 {
-    let mut sum = 0;
-    for y in 0..height
-    {
-        for x in 0..width
-        {
-            sum += shape[y][x];
-        }
-    }
-
-
      // 0 degrees
-     orientations.push( Layout{ width, height, sum, values: shape} );
-
-       /*
-        0010
-        1111
-
-        10
-        10
-        11
-        10
-
-        1111
-        0100
-
-        01
-        11
-        01
-        01*/
+     orientations.push( Layout{ width, height, values: shape} );
 
     let mut flip_dimensions = true;
     for i in 0..3
@@ -191,7 +163,6 @@ fn add_rotations( shape: LayoutValues, width: usize, height: usize, orientations
             Layout{ 
                 width: if flip_dimensions { height } else {width},
                 height: if flip_dimensions { width } else {height},
-                sum,
                 values: layout 
             });
 
@@ -245,49 +216,49 @@ lazy_static! {
     static ref ALL_PIECES:  Vec<Piece> = {
        let mut v = Vec::new();
 
-       v.push( Piece::new( 4, 2, true, v.len()+1, [
+       v.push( Piece::new( 4, 2, true /*flippable*/, v.len()+1, [
             [0,0,1,0],
             [1,1,1,1],
             [0,0,0,0],
             [0,0,0,0]] ));
 
-       v.push( Piece::new( 3, 2, false, v.len()+1, [
+       v.push( Piece::new( 3, 2, false /*flippable*/, v.len()+1, [
             [1,1,1,0],
             [1,1,1,0],
             [0,0,0,0],
             [0,0,0,0]] ));
 
-        v.push( Piece::new( 4, 2, true, v.len()+1, [
+        v.push( Piece::new( 4, 2, true /*flippable*/, v.len()+1, [
             [1,0,0,0],
             [1,1,1,1],
             [0,0,0,0],
             [0,0,0,0]] ));
 
-        v.push( Piece::new( 3, 3, false, v.len()+1, [
+        v.push( Piece::new( 3, 3, false /*flippable*/, v.len()+1, [
             [1,0,0,0],
             [1,0,0,0],
             [1,1,1,0],
             [0,0,0,0]] ));
 
-        v.push( Piece::new( 4, 2, true, v.len()+1, [
+        v.push( Piece::new( 4, 2, true /*flippable*/, v.len()+1, [
             [1,1,1,0],
             [0,0,1,1],
             [0,0,0,0],
             [0,0,0,0]] ));
 
-        v.push( Piece::new( 3, 2, true, v.len()+1, [
+        v.push( Piece::new( 3, 2, true /*flippable*/, v.len()+1, [
             [1,1,1,0],
             [0,1,1,0],
             [0,0,0,0],
             [0,0,0,0]] ));
         
-        v.push( Piece::new( 3, 2, false, v.len()+1, [
+        v.push( Piece::new( 3, 2, false /*flippable*/, v.len()+1, [
             [1,1,1,0],
             [1,0,1,0],
             [0,0,0,0],
             [0,0,0,0]] ));
 
-        v.push( Piece::new( 3, 3, true, v.len()+1, [
+        v.push( Piece::new( 3, 3, true /*flippable*/, v.len()+1, [
             [1,1,0,0],
             [0,1,0,0],
             [0,1,1,0],
@@ -317,12 +288,6 @@ fn recurse( piece_index : usize, board : & mut Board ) -> bool
         {
             for x in 0..max_x
             {
-              /*  if piece_index >= 6
-                {
-                    println!("{}", board);
-                    println!();
-                }*/
-
                 if board.place_layout( layout, x, y )
                 {
                     if recurse( piece_index + 1, board )
