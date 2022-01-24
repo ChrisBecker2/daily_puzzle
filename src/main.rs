@@ -10,6 +10,10 @@ const EMPTY_LAYOUT_VALUES : LayoutValues = [[0; PIECE_SIZE]; PIECE_SIZE];
 const WALL_VALUE : u32 = 100;
 const DAY_VALUE : u32 = WALL_VALUE - 1;
 const MONTH_VALUE : u32 = WALL_VALUE - 2;
+const PIECES_COUNT : usize = 8;
+
+// how many pieces to print? 0 for all
+const HINT_LENGTH : usize = 0;
 
 #[derive(Debug)]
 #[derive(PartialEq)]
@@ -113,6 +117,10 @@ impl Board
  // Enable print! for Board
  impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+
+        let pieces : Vec<u32> = (1..(PIECES_COUNT+1) as u32).collect();
+        // pieces.shuffle(&mut RNG);
+
         for row in self.values
         {
             for value in row
@@ -123,7 +131,7 @@ impl Board
                     WALL_VALUE => write!(f, "X")?,
                     DAY_VALUE => write!(f, "D")?,
                     MONTH_VALUE => write!(f, "M")?,
-                    _ => write!(f, "{}", value)?,
+                    _ => if HINT_LENGTH == 0 || pieces[0..HINT_LENGTH].contains(&value) { write!(f, "{}", value)? } else { write!(f, ".")?},
                 };
                 write!(f, " ")?;
             }
@@ -264,6 +272,11 @@ lazy_static! {
             [0,1,1,0],
             [0,0,0,0]] ));
 
+        if v.len() != PIECES_COUNT
+        {
+            panic!();
+        }
+
         v
     };
 }
@@ -277,8 +290,7 @@ fn debug_print(_piece_count : usize, _board : &Board)
     }*/
 }
 
-
-fn recurse( piece_count : usize, row : usize, pieces_used : & mut [bool;8], board : & mut Board ) -> bool
+fn recurse( piece_count : usize, row : usize, pieces_used : & mut [bool;PIECES_COUNT], board : & mut Board ) -> bool
 {
     if piece_count >= ALL_PIECES.len()
     {
@@ -336,7 +348,7 @@ async fn solve( day: u32, month: u32 ) -> ( bool, Board )
 {
     let mut board = Board::new( day, month );
 
-    (recurse(0, 0, & mut [false; 8], & mut board), board)
+    (recurse(0, 0, & mut [false; PIECES_COUNT], & mut board), board)
 }
 
 async fn solve_and_print( month : u32, day: u32 )
