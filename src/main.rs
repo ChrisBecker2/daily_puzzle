@@ -69,7 +69,7 @@ impl Board
     fn place_layout(&mut self, layout: &Layout, at_x: usize, at_y: usize,) -> bool
     {
         // does it fit on the board?
-        if at_x + layout.width > self.values[0].len() || at_y + layout.width > self.values.len()
+        if at_x + layout.width > self.values[0].len() || at_y + layout.height > self.values.len()
         {
             return false;
         }
@@ -270,7 +270,7 @@ lazy_static! {
 }
 
 
-fn recurse( piece_index : usize, board : & mut Board ) -> bool
+fn recurse( piece_index : usize, start_row : usize, board : & mut Board ) -> bool
 {
     if piece_index >= ALL_PIECES.len()
     {
@@ -285,13 +285,23 @@ fn recurse( piece_index : usize, board : & mut Board ) -> bool
         let max_x = board.values[0].len() - layout.width + 1;
 
         // place the piece at each location
-        for y in 0..max_y
+        for y in start_row..max_y
         {
             for x in 0..max_x
             {
                 if board.place_layout( layout, x, y )
                 {
-                    if recurse( piece_index + 1, board )
+                   /* if piece_index == 0
+                    {
+                        println!("{}", board);
+                        //println!("{}, {}", layout.width, layout.height);
+                        println!();
+                    }*/
+
+                    // start farther down if a piece can't reach the upper rows which should be filled by now
+                    let new_start_row = 0; //if y > PIECE_SIZE { y - PIECE_SIZE } else {0};
+
+                    if recurse( piece_index + 1, new_start_row, board )
                     {
                         return true;
                     }
@@ -309,7 +319,7 @@ async fn solve( day: u32, month: u32 ) -> ( bool, Board )
 {
     let mut board = Board::new( day, month );
 
-    (recurse(0, & mut board), board)
+    (recurse(0, 0, & mut board), board)
 }
 
 async fn async_main()
@@ -335,6 +345,7 @@ async fn async_main()
         else
         {
             println!("Month {}, Day {} - No solution found!", result.0, result.1);
+            panic!();
         }
         println!();
     }
@@ -344,6 +355,7 @@ fn main() {
 
     let now = Instant::now();
 
+    // solve all
     block_on(async_main());
 
     println!("Runtime took {} seconds.", now.elapsed().as_millis() as f64 / 1000.0 );
