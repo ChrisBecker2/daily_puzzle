@@ -43,28 +43,28 @@ impl Board
             panic!("Invalid date supplied");
         }
 
-        let mut b : [[u32; 7]; 7] = [[0; 7]; 7];
+        let mut v : [[u32; 7]; 7] = [[0; 7]; 7];
 
         // fill top right
-        b[0][6] = WALL_VALUE;
-        b[1][6] = WALL_VALUE;
+        v[0][6] = WALL_VALUE;
+        v[1][6] = WALL_VALUE;
 
         // fill in bottom right
-        b[6][6] = WALL_VALUE;
-        b[6][5] = WALL_VALUE;
-        b[6][4] = WALL_VALUE;
-        b[6][3] = WALL_VALUE;
+        v[6][6] = WALL_VALUE;
+        v[6][5] = WALL_VALUE;
+        v[6][4] = WALL_VALUE;
+        v[6][3] = WALL_VALUE;
 
         let month = _month - 1;
         let day = _day - 1;
 
         // fill in month
-        b[(month / 6) as usize][(month % 6) as usize] = MONTH_VALUE;
+        v[(month / 6) as usize][(month % 6) as usize] = MONTH_VALUE;
 
         // fill in date
-        b[(day / 7 + 2) as usize][(day % 7) as usize] = DAY_VALUE;
+        v[(day / 7 + 2) as usize][(day % 7) as usize] = DAY_VALUE;
 
-        Board { values : b }
+        Board { values : v }
     }
 
     fn place_layout(&mut self, layout: &Layout, at_x: usize, at_y: usize,) -> bool
