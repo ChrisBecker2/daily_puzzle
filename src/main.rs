@@ -40,7 +40,7 @@ impl Board
     {
         if _month <= 0 || _month > 12 || _day <= 0 || _day > 31
         {
-            panic!("Invalidate date supplied");
+            panic!("Invalid date supplied");
         }
 
         let mut b : [[u32; 7]; 7] = [[0; 7]; 7];
