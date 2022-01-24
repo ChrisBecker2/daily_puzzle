@@ -1,6 +1,9 @@
 #![allow(unused)]
 use lazy_static::lazy_static; 
 use std::time::{Duration, Instant};
+use std::thread;
+use futures::executor::block_on;
+use async_std::{task};
 
 const PIECE_SIZE : usize = 4;
 type LayoutValues = [[u32; PIECE_SIZE]; PIECE_SIZE];
@@ -331,7 +334,7 @@ fn recurse( piece_index : usize, board : & mut Board ) -> bool
     return false;
 }
 
-fn solve( day: u32, month: u32 ) -> ( bool, Board )
+async fn solve( day: u32, month: u32 ) -> ( bool, Board ) 
 {
     let mut b = Board::new( day, month );
 
@@ -340,14 +343,31 @@ fn solve( day: u32, month: u32 ) -> ( bool, Board )
     (result, b)
 }
 
+async fn async_main()
+{
+    let mut v = Vec::new();
+
+    for m in 1..12+1
+    {
+        for d in 1..31+1
+        {
+            v.push( (m, d, task::spawn( solve( m, d ) ) ) );
+        }
+    }
+
+    for result in v
+    {
+        println!("Month {}, Day {}", result.0, result.1);
+        result.2.await.1.print();
+        println!();
+    }
+}
+
 fn main() {
 
     let now = Instant::now();
 
-    let result = solve( 1, 1 );
-
-    println!("solved: {}", result.0);
-    result.1.print();
+    block_on(async_main());
 
     println!("Runtime took {} seconds.", now.elapsed().as_millis() as f64 / 1000.0 );
 
