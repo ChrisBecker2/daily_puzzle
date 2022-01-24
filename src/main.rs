@@ -13,7 +13,6 @@ struct Piece
 {
     width: usize,
     height: usize,
-    flippable: bool,
     orientations: Vec<Layout>,
 }
 
@@ -21,7 +20,6 @@ struct Board
 {
     values : [[u8; 7]; 7],
 }
-
 
 impl Board
 {
@@ -75,6 +73,27 @@ impl Board
 
             println!();
         }
+    }
+
+    fn place_layout(&mut self, ref piece: Piece, at_x: usize, at_y: usize,) -> bool
+    {
+        // does it fit?
+        if at_x + piece.width > self.values[0].len() || at_y + piece.width > self.values.len()
+        {
+            return false;
+        }
+
+        let mut sum : u32 = 0;
+
+        for y in 0..piece.height
+        {
+            for x in 0..piece.width
+            {
+                self.values[y + at_y][x + at_x] += piece.orientations[y][x];
+            }
+        } 
+
+        return true;
     }
 }
 
@@ -223,12 +242,55 @@ lazy_static! {
 }
 
 
+fn recurse( piece_index : usize, board : & mut Board ) -> bool
+{
+    if ALL_PIECES.len() >= piece_index
+    {
+        return true;
+    }
+
+    let ref piece = ALL_PIECES[piece_index];
+
+    let height = board.values.len() - piece.height;
+    let width = board.values[0].len() - piece.width;
+
+    // place the piece at each location
+    for y in 0..height
+    {
+        for x in 0..width
+        {
+            if board.place_piece( *piece, x, y )
+            {
+                if recurse( piece_index + 1, board )
+                {
+                    return true;
+                }
+
+                board.remove_piece( piece, x, y );
+            }
+        }
+    }
+
+    // recurse( piece_index + 1, board );
+    
+
+    return false;
+}
+
+fn solve( day: u8, month: u8 ) -> ( bool, Board )
+{
+    let mut b = Board::new( day, month );
+
+    let result = recurse(0, & mut b);
+
+    (result, b)
+}
+
 fn main() {
 
-    let b = Board::new(1, 1);
+    let result = solve( 1, 1 );
 
-    b.print();
+    println!("solved: {}", result.0);
+    result.1.print();
 
-   // println!("{}", ALL_PIECES.len());
- //   println!("{:?}", ALL_PIECES[3]);
 }
