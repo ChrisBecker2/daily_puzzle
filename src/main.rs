@@ -4,6 +4,7 @@ use std::time::{Duration, Instant};
 use futures::executor::block_on;
 use async_std::{task};
 use std::fmt;
+use std::cmp::min;
 
 const PIECE_SIZE : usize = 4;
 type LayoutValues = [[u32; PIECE_SIZE]; PIECE_SIZE];
@@ -269,44 +270,63 @@ lazy_static! {
     };
 }
 
-
-fn recurse( piece_index : usize, start_row : usize, board : & mut Board ) -> bool
+fn debug_print(piece_count : usize, board : &Board)
 {
-    if piece_index >= ALL_PIECES.len()
+    /*if piece_count == 0
     {
+        println!("{}", board);
+        println!();
+    }*/
+}
+
+
+fn recurse( piece_count : usize, row : usize, pieces_used : & mut [bool;8], board : & mut Board ) -> bool
+{
+    if piece_count >= ALL_PIECES.len()
+    {
+        // all pieces placed!
         return true;
     }
 
-    let ref piece = ALL_PIECES[piece_index];
-
-    for layout in &piece.orientations
+    // try each unused piece
+    for p in 0..ALL_PIECES.len()
     {
-        let max_y = board.values.len() - layout.height + 1;
-        let max_x = board.values[0].len() - layout.width + 1;
-
-        // place the piece at each location
-        for y in start_row..max_y
+        if pieces_used[p]
         {
-            for x in 0..max_x
+            continue;
+        }
+
+        let ref piece = ALL_PIECES[p];
+
+        // try each orientation
+        for layout in &piece.orientations
+        {
+            let max_y = board.values.len() - layout.height;
+            let max_x = board.values[0].len() - layout.width;
+
+            // try placing the oriented piece at each column
+            for x in 0..max_x+1
             {
-                if board.place_layout( layout, x, y )
+                if board.place_layout( layout, x, row )
                 {
-                   /* if piece_index == 0
+                    debug_print(piece_count, board);
+
+                    pieces_used[p] = true;
+
+                    // if we filled a row, move on to the next
+                    let mut next_row = row;
+                    while next_row < board.values.len() && board.values[next_row].iter().fold(true, |result, value| { result && *value != 0})
                     {
-                        println!("{}", board);
-                        //println!("{}, {}", layout.width, layout.height);
-                        println!();
-                    }*/
+                        next_row += 1;
+                    }
 
-                    // start farther down if a piece can't reach the upper rows which should be filled by now
-                    let new_start_row = 0; //if y > PIECE_SIZE { y - PIECE_SIZE } else {0};
-
-                    if recurse( piece_index + 1, new_start_row, board )
+                    if recurse( piece_count + 1, next_row, pieces_used, board )
                     {
                         return true;
                     }
-
-                    board.remove_layout( layout, x, y );
+                    
+                    board.remove_layout( layout, x, row );
+                    pieces_used[p] = false;
                 }
             }
         }
@@ -319,7 +339,7 @@ async fn solve( day: u32, month: u32 ) -> ( bool, Board )
 {
     let mut board = Board::new( day, month );
 
-    (recurse(0, 0, & mut board), board)
+    (recurse(0, 0, & mut [false; 8], & mut board), board)
 }
 
 async fn solve_and_print( month : u32, day: u32 )
@@ -366,7 +386,7 @@ fn main() {
     block_on(solve_and_print(0, 0));
 
     // solve one
-    //block_on(solve_and_print(2, 15));
+    //block_on(solve_and_print(5, 7));
 
     println!("Runtime took {} seconds.", now.elapsed().as_millis() as f64 / 1000.0 );
 }
