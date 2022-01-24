@@ -90,7 +90,7 @@ impl Board
             return false;
         }
 
-        let mut sum : u32 = 0;
+        let mut placed = true;
 
         // add the piece to the board
         for y in 0..layout.height
@@ -98,13 +98,14 @@ impl Board
             for x in 0..layout.width
             {
                 let val = & mut self.values[y + at_y][x + at_x];
+                let piece_val = layout.values[y][x];
+                placed = placed && ( *val == 0 || piece_val == 0 );
                 *val += layout.values[y][x];
-                sum += *val;
             }
         } 
 
         // if it overlapped with another piece, remove it
-        if sum != layout.sum
+        if !placed
         {
             self.remove_layout(layout, at_x, at_y );
             return false;
@@ -277,7 +278,7 @@ lazy_static! {
             [0,0,0,0],
             [0,0,0,0]] ));
 
-        v.push( Piece::new( 3, 3, false, v.len()+1, [
+        v.push( Piece::new( 3, 3, true, v.len()+1, [
             [1,1,0,0],
             [0,1,0,0],
             [0,1,1,0],
@@ -299,15 +300,14 @@ fn recurse( piece_index : usize, board : & mut Board ) -> bool
 
     for layout in &piece.orientations
     {
-        let height = board.values.len() - layout.height;
-        let width = board.values[0].len() - layout.width;
+        let max_y = board.values.len() - layout.height + 1;
+        let max_x = board.values[0].len() - layout.width + 1;
 
         // place the piece at each location
-        for y in 0..height
+        for y in 0..max_y
         {
-            for x in 0..width
+            for x in 0..max_x
             {
-  
                 if board.place_layout( layout, x, y )
                 {
                     if recurse( piece_index + 1, board )
