@@ -1,10 +1,8 @@
-#![allow(unused)]
 use lazy_static::lazy_static; 
-use std::time::{Duration, Instant};
+use std::time::{Instant};
 use futures::executor::block_on;
 use async_std::{task};
 use std::fmt;
-use std::cmp::min;
 
 const PIECE_SIZE : usize = 4;
 type LayoutValues = [[u32; PIECE_SIZE]; PIECE_SIZE];
@@ -121,16 +119,16 @@ impl Board
             {
                 match value
                 {
-                    0 => write!(f, "."),
-                    WALL_VALUE => write!(f, "X"),
-                    DAY_VALUE => write!(f, "D"),
-                    MONTH_VALUE => write!(f, "M"),
-                    _ => write!(f, "{}", value),
+                    0 => write!(f, ".")?,
+                    WALL_VALUE => write!(f, "X")?,
+                    DAY_VALUE => write!(f, "D")?,
+                    MONTH_VALUE => write!(f, "M")?,
+                    _ => write!(f, "{}", value)?,
                 };
-                write!(f, " ");
+                write!(f, " ")?;
             }
 
-            writeln!(f);
+            writeln!(f)?;
         }
 
         Ok(())
@@ -270,11 +268,11 @@ lazy_static! {
     };
 }
 
-fn debug_print(piece_count : usize, board : &Board)
+fn debug_print(_piece_count : usize, _board : &Board)
 {
-    /*if piece_count == 0
+    /*if _piece_count == 0
     {
-        println!("{}", board);
+        println!("{}", _board);
         println!();
     }*/
 }
@@ -301,7 +299,6 @@ fn recurse( piece_count : usize, row : usize, pieces_used : & mut [bool;8], boar
         // try each orientation
         for layout in &piece.orientations
         {
-            let max_y = board.values.len() - layout.height;
             let max_x = board.values[0].len() - layout.width;
 
             // try placing the oriented piece at each column
@@ -364,7 +361,7 @@ async fn solve_and_print( month : u32, day: u32 )
     for result in v
     {
         let solution = result.2.await;
-        if(solution.0)
+        if solution.0
         {
             println!("Month {}, Day {}", result.0, result.1);
             println!("{}", solution.1)
