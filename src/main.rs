@@ -2,17 +2,18 @@
 use lazy_static::lazy_static; 
 
 const PIECE_SIZE : usize = 4;
-type LayoutValues = [[u8; PIECE_SIZE]; PIECE_SIZE];
+type LayoutValues = [[u32; PIECE_SIZE]; PIECE_SIZE];
 const EMPTY_LAYOUT_VALUES : LayoutValues = [[0; PIECE_SIZE]; PIECE_SIZE];
-const WALL_VALUE : u8 = 100;
-const DAY_VALUE : u8 = WALL_VALUE - 1;
-const MONTH_VALUE : u8 = WALL_VALUE - 2;
+const WALL_VALUE : u32 = 100;
+const DAY_VALUE : u32 = WALL_VALUE - 1;
+const MONTH_VALUE : u32 = WALL_VALUE - 2;
 
 #[derive(Debug)]
 struct Layout
 {
     width: usize,
     height: usize,
+    sum: u32,
     values: LayoutValues,
 }
 
@@ -24,19 +25,19 @@ struct Piece
 
 struct Board
 {
-    values : [[u8; 7]; 7],
+    values : [[u32; 7]; 7],
 }
 
 impl Board
 {
-    fn new( _month: u8, _day: u8 ) -> Self
+    fn new( _month: u32, _day: u32 ) -> Self
     {
         if _month <= 0 || _month > 12 || _day <= 0 || _day > 31
         {
             panic!("Invalidate date supplied");
         }
 
-        let mut b : [[u8; 7]; 7] = [[0; 7]; 7];
+        let mut b : [[u32; 7]; 7] = [[0; 7]; 7];
 
         // fill top right
         b[0][6] = WALL_VALUE;
@@ -81,9 +82,9 @@ impl Board
         }
     }
 
-    fn place_layout(&mut self, ref layout: Layout, at_x: usize, at_y: usize,) -> bool
+    fn place_layout(&mut self, layout: &Layout, at_x: usize, at_y: usize,) -> bool
     {
-        // does it fit?
+        // does it fit on the board?
         if at_x + layout.width > self.values[0].len() || at_y + layout.width > self.values.len()
         {
             return false;
@@ -91,22 +92,54 @@ impl Board
 
         let mut sum : u32 = 0;
 
+        // add the piece to the board
         for y in 0..layout.height
         {
             for x in 0..layout.width
             {
-                self.values[y + at_y][x + at_x] += layout.values[y][x];
+                let val = & mut self.values[y + at_y][x + at_x];
+                *val += layout.values[y][x];
+                sum += *val;
             }
         } 
 
+        // if it overlapped with another piece, remove it
+        if sum != layout.sum
+        {
+            self.remove_layout(layout, at_x, at_y );
+            return false;
+        }
+
         return true;
+    }
+
+    fn remove_layout(&mut self, layout: &Layout, at_x: usize, at_y: usize)
+    {
+        // subtract the piece
+        for y in 0..layout.height
+        {
+            for x in 0..layout.width
+            {
+                self.values[y + at_y][x + at_x] -= layout.values[y][x];
+            }
+        } 
     }
 }
 
 fn add_rotations( shape: LayoutValues, width: usize, height: usize, orientations: &mut Vec<Layout> )
 {
+    let mut sum = 0;
+    for y in 0..height
+    {
+        for x in 0..width
+        {
+            sum += shape[y][x];
+        }
+    }
+
+
      // 0 degrees
-     orientations.push( Layout{ width, height, values: shape} );
+     orientations.push( Layout{ width, height, sum, values: shape} );
 
        /*
         0010
@@ -148,6 +181,7 @@ fn add_rotations( shape: LayoutValues, width: usize, height: usize, orientations
             Layout{ 
                 width: if flip_dimensions { height } else {width},
                 height: if flip_dimensions { width } else {height},
+                sum,
                 values: layout 
             });
 
@@ -166,7 +200,7 @@ impl Piece
         {
             for w in 0..width
             {
-                multiplied_shape[h][w] = shape[h][w] * multiplier as u8;   
+                multiplied_shape[h][w] = shape[h][w] * multiplier as u32;   
             }
         }
 
@@ -256,14 +290,14 @@ lazy_static! {
 
 fn recurse( piece_index : usize, board : & mut Board ) -> bool
 {
-    if ALL_PIECES.len() >= piece_index
+    if piece_index >= ALL_PIECES.len()
     {
         return true;
     }
 
     let ref piece = ALL_PIECES[piece_index];
 
-    for layout in piece.orientations
+    for layout in &piece.orientations
     {
         let height = board.values.len() - layout.height;
         let width = board.values[0].len() - layout.width;
@@ -273,6 +307,7 @@ fn recurse( piece_index : usize, board : & mut Board ) -> bool
         {
             for x in 0..width
             {
+  
                 if board.place_layout( layout, x, y )
                 {
                     if recurse( piece_index + 1, board )
@@ -286,13 +321,10 @@ fn recurse( piece_index : usize, board : & mut Board ) -> bool
         }
     }
 
-    // recurse( piece_index + 1, board );
-    
-
     return false;
 }
 
-fn solve( day: u8, month: u8 ) -> ( bool, Board )
+fn solve( day: u32, month: u32 ) -> ( bool, Board )
 {
     let mut b = Board::new( day, month );
 
