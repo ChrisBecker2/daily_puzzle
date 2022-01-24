@@ -13,6 +13,7 @@ const DAY_VALUE : u32 = WALL_VALUE - 1;
 const MONTH_VALUE : u32 = WALL_VALUE - 2;
 
 #[derive(Debug)]
+#[derive(PartialEq)]
 struct Layout
 {
     width: usize,
@@ -135,36 +136,38 @@ impl Board
     }
 }
 
-fn add_rotations( shape: LayoutValues, width: usize, height: usize, orientations: &mut Vec<Layout> )
+fn add_all_rotations( shape: LayoutValues, width: usize, height: usize, orientations: &mut Vec<Layout> )
 {
-     // 0 degrees
-     orientations.push( Layout{ width, height, values: shape} );
-
-    let mut flip_dimensions = true;
-    for i in 0..3
+    let mut flip_dimensions = false;
+    for i in 0..4
     {
-        let mut layout = EMPTY_LAYOUT_VALUES;
-        for h in 0..height
+        let mut values = EMPTY_LAYOUT_VALUES;
+        for y in 0..height
         {
-            for w in 0..width
+            for x in 0..width
             {
                 match i
                 {
-                    0 => layout[w][height - h - 1] = shape[h][w], // 90 degrees
-                    1 => layout[height - h - 1][width - w - 1] = shape[h][w], // 180 degrees
-                    2 => layout[width - w - 1][h] = shape[h][w], // 270 degrees
+                    0 => values[y][x] = shape[y][x], // 0 degrees
+                    1 => values[x][height - y - 1] = shape[y][x], // 90 degrees
+                    2 => values[height - y - 1][width - x - 1] = shape[y][x], // 180 degrees
+                    3 => values[width - x - 1][y] = shape[y][x], // 270 degrees
                     _ => panic!()
                 }
             }
         }
 
+        let layout = Layout{ 
+            width: if flip_dimensions { height } else {width},
+            height: if flip_dimensions { width } else {height},
+            values 
+        };
 
-        orientations.push( 
-            Layout{ 
-                width: if flip_dimensions { height } else {width},
-                height: if flip_dimensions { width } else {height},
-                values: layout 
-            });
+        // only add layouts that we don't have already (reduces pieces that have symmetry)
+        if !orientations.contains(&layout)
+        {
+            orientations.push(layout);
+        }
 
         flip_dimensions = !flip_dimensions;
     }
@@ -172,36 +175,34 @@ fn add_rotations( shape: LayoutValues, width: usize, height: usize, orientations
 
 impl Piece
 {
-    fn new( width: usize, height: usize, flippable: bool, multiplier: usize, shape: LayoutValues ) -> Self
+    fn new( width: usize, height: usize, multiplier: usize, shape: LayoutValues ) -> Self
     {
         let mut orientations = Vec::new();
 
+        // apply multiplier so each piece has unique number
         let mut multiplied_shape = EMPTY_LAYOUT_VALUES;
-        for h in 0..height
+        for y in 0..height
         {
-            for w in 0..width
+            for x in 0..width
             {
-                multiplied_shape[h][w] = shape[h][w] * multiplier as u32;   
+                multiplied_shape[y][x] = shape[y][x] * multiplier as u32;   
             }
         }
 
-        add_rotations( multiplied_shape, width, height, &mut orientations );  
+        // add all rotations of the shape
+        add_all_rotations( multiplied_shape, width, height, &mut orientations );  
 
-        // 1 flip
-        if( flippable )
+        // flip the shape and add rotations
+        let mut flipped = EMPTY_LAYOUT_VALUES;
+        for y in 0..height
         {
-            let mut flipped = EMPTY_LAYOUT_VALUES;
-
-            for h in 0..height
+            for x in 0..width
             {
-                for w in 0..width
-                {
-                    flipped[h][width - w - 1] = multiplied_shape[h][w];
-                }
+                flipped[y][width - x - 1] = multiplied_shape[y][x];
             }
- 
-            add_rotations( flipped, width, height, &mut orientations );
         }
+
+        add_all_rotations( flipped, width, height, &mut orientations );
 
         Piece
         {
@@ -216,49 +217,49 @@ lazy_static! {
     static ref ALL_PIECES:  Vec<Piece> = {
        let mut v = Vec::new();
 
-       v.push( Piece::new( 4, 2, true /*flippable*/, v.len()+1, [
+       v.push( Piece::new( 4, 2, v.len()+1, [
             [0,0,1,0],
             [1,1,1,1],
             [0,0,0,0],
             [0,0,0,0]] ));
 
-       v.push( Piece::new( 3, 2, false /*flippable*/, v.len()+1, [
+       v.push( Piece::new( 3, 2, v.len()+1, [
             [1,1,1,0],
             [1,1,1,0],
             [0,0,0,0],
             [0,0,0,0]] ));
 
-        v.push( Piece::new( 4, 2, true /*flippable*/, v.len()+1, [
+        v.push( Piece::new( 4, 2, v.len()+1, [
             [1,0,0,0],
             [1,1,1,1],
             [0,0,0,0],
             [0,0,0,0]] ));
 
-        v.push( Piece::new( 3, 3, false /*flippable*/, v.len()+1, [
+        v.push( Piece::new( 3, 3, v.len()+1, [
             [1,0,0,0],
             [1,0,0,0],
             [1,1,1,0],
             [0,0,0,0]] ));
 
-        v.push( Piece::new( 4, 2, true /*flippable*/, v.len()+1, [
+        v.push( Piece::new( 4, 2, v.len()+1, [
             [1,1,1,0],
             [0,0,1,1],
             [0,0,0,0],
             [0,0,0,0]] ));
 
-        v.push( Piece::new( 3, 2, true /*flippable*/, v.len()+1, [
+        v.push( Piece::new( 3, 2, v.len()+1, [
             [1,1,1,0],
             [0,1,1,0],
             [0,0,0,0],
             [0,0,0,0]] ));
         
-        v.push( Piece::new( 3, 2, false /*flippable*/, v.len()+1, [
+        v.push( Piece::new( 3, 2, v.len()+1, [
             [1,1,1,0],
             [1,0,1,0],
             [0,0,0,0],
             [0,0,0,0]] ));
 
-        v.push( Piece::new( 3, 3, true /*flippable*/, v.len()+1, [
+        v.push( Piece::new( 3, 3, v.len()+1, [
             [1,1,0,0],
             [0,1,0,0],
             [0,1,1,0],
