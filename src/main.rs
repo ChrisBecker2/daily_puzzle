@@ -2,17 +2,23 @@
 use lazy_static::lazy_static; 
 
 const PIECE_SIZE : usize = 4;
-type Layout = [[u8; PIECE_SIZE]; PIECE_SIZE];
-const EMPTY_LAYOUT : Layout = [[0; PIECE_SIZE]; PIECE_SIZE];
+type LayoutValues = [[u8; PIECE_SIZE]; PIECE_SIZE];
+const EMPTY_LAYOUT_VALUES : LayoutValues = [[0; PIECE_SIZE]; PIECE_SIZE];
 const WALL_VALUE : u8 = 100;
 const DAY_VALUE : u8 = WALL_VALUE - 1;
 const MONTH_VALUE : u8 = WALL_VALUE - 2;
 
 #[derive(Debug)]
-struct Piece
+struct Layout
 {
     width: usize,
     height: usize,
+    values: LayoutValues,
+}
+
+#[derive(Debug)]
+struct Piece
+{
     orientations: Vec<Layout>,
 }
 
@@ -75,21 +81,21 @@ impl Board
         }
     }
 
-    fn place_layout(&mut self, ref piece: Piece, at_x: usize, at_y: usize,) -> bool
+    fn place_layout(&mut self, ref layout: Layout, at_x: usize, at_y: usize,) -> bool
     {
         // does it fit?
-        if at_x + piece.width > self.values[0].len() || at_y + piece.width > self.values.len()
+        if at_x + layout.width > self.values[0].len() || at_y + layout.width > self.values.len()
         {
             return false;
         }
 
         let mut sum : u32 = 0;
 
-        for y in 0..piece.height
+        for y in 0..layout.height
         {
-            for x in 0..piece.width
+            for x in 0..layout.width
             {
-                self.values[y + at_y][x + at_x] += piece.orientations[y][x];
+                self.values[y + at_y][x + at_x] += layout.values[y][x];
             }
         } 
 
@@ -97,10 +103,10 @@ impl Board
     }
 }
 
-fn add_rotations( shape: Layout, width: usize, height: usize, orientations: &mut Vec<Layout> )
+fn add_rotations( shape: LayoutValues, width: usize, height: usize, orientations: &mut Vec<Layout> )
 {
      // 0 degrees
-     orientations.push( shape );
+     orientations.push( Layout{ width, height, values: shape} );
 
        /*
         0010
@@ -119,10 +125,10 @@ fn add_rotations( shape: Layout, width: usize, height: usize, orientations: &mut
         01
         01*/
 
-
+    let mut flip_dimensions = true;
     for i in 0..3
     {
-        let mut layout = EMPTY_LAYOUT;
+        let mut layout = EMPTY_LAYOUT_VALUES;
         for h in 0..height
         {
             for w in 0..width
@@ -136,17 +142,26 @@ fn add_rotations( shape: Layout, width: usize, height: usize, orientations: &mut
                 }
             }
         }
-        orientations.push(layout);
+
+
+        orientations.push( 
+            Layout{ 
+                width: if flip_dimensions { height } else {width},
+                height: if flip_dimensions { width } else {height},
+                values: layout 
+            });
+
+        flip_dimensions = !flip_dimensions;
     }
 }
 
 impl Piece
 {
-    fn new( width: usize, height: usize, flippable: bool, multiplier: usize, shape: Layout ) -> Self
+    fn new( width: usize, height: usize, flippable: bool, multiplier: usize, shape: LayoutValues ) -> Self
     {
         let mut orientations = Vec::new();
 
-        let mut multiplied_shape = EMPTY_LAYOUT;
+        let mut multiplied_shape = EMPTY_LAYOUT_VALUES;
         for h in 0..height
         {
             for w in 0..width
@@ -160,7 +175,7 @@ impl Piece
         // 1 flip
         if( flippable )
         {
-            let mut flipped = EMPTY_LAYOUT;
+            let mut flipped = EMPTY_LAYOUT_VALUES;
 
             for h in 0..height
             {
@@ -175,9 +190,6 @@ impl Piece
 
         Piece
         {
-            width,
-            height,
-            flippable,
             orientations
         }
     }
@@ -251,22 +263,25 @@ fn recurse( piece_index : usize, board : & mut Board ) -> bool
 
     let ref piece = ALL_PIECES[piece_index];
 
-    let height = board.values.len() - piece.height;
-    let width = board.values[0].len() - piece.width;
-
-    // place the piece at each location
-    for y in 0..height
+    for layout in piece.orientations
     {
-        for x in 0..width
-        {
-            if board.place_piece( *piece, x, y )
-            {
-                if recurse( piece_index + 1, board )
-                {
-                    return true;
-                }
+        let height = board.values.len() - layout.height;
+        let width = board.values[0].len() - layout.width;
 
-                board.remove_piece( piece, x, y );
+        // place the piece at each location
+        for y in 0..height
+        {
+            for x in 0..width
+            {
+                if board.place_layout( layout, x, y )
+                {
+                    if recurse( piece_index + 1, board )
+                    {
+                        return true;
+                    }
+
+                    board.remove_layout( layout, x, y );
+                }
             }
         }
     }
