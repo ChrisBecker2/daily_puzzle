@@ -322,16 +322,23 @@ async fn solve( day: u32, month: u32 ) -> ( bool, Board )
     (recurse(0, 0, & mut board), board)
 }
 
-async fn async_main()
+async fn solve_and_print( month : u32, day: u32 )
 {
     let mut v = Vec::new();
 
-    for m in 1..12+1
+    if month == 0 || day == 0
     {
-        for d in 1..31+1
+        for m in 1..12+1
         {
-            v.push( (m, d, task::spawn( solve( m, d ) ) ) );
+            for d in 1..31+1
+            {
+                v.push( (m, d, task::spawn( solve( m, d ) ) ) );
+            }
         }
+    }
+    else
+    {
+        v.push( (month, day, task::spawn( solve( month, day ) ) ) );
     }
 
     for result in v
@@ -356,7 +363,10 @@ fn main() {
     let now = Instant::now();
 
     // solve all
-    block_on(async_main());
+    block_on(solve_and_print(0, 0));
+
+    // solve one
+    //block_on(solve_and_print(2, 15));
 
     println!("Runtime took {} seconds.", now.elapsed().as_millis() as f64 / 1000.0 );
 }
