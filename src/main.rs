@@ -1,5 +1,6 @@
 #![allow(unused)]
 use lazy_static::lazy_static; 
+use std::time::{Duration, Instant};
 
 const PIECE_SIZE : usize = 4;
 type LayoutValues = [[u32; PIECE_SIZE]; PIECE_SIZE];
@@ -308,6 +309,12 @@ fn recurse( piece_index : usize, board : & mut Board ) -> bool
         {
             for x in 0..max_x
             {
+              /*  if piece_index >= 6
+                {
+                    board.print();
+                    println!();
+                }*/
+
                 if board.place_layout( layout, x, y )
                 {
                     if recurse( piece_index + 1, board )
@@ -335,9 +342,13 @@ fn solve( day: u32, month: u32 ) -> ( bool, Board )
 
 fn main() {
 
+    let now = Instant::now();
+
     let result = solve( 1, 1 );
 
     println!("solved: {}", result.0);
     result.1.print();
+
+    println!("Runtime took {} seconds.", now.elapsed().as_millis() as f64 / 1000.0 );
 
 }
