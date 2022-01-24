@@ -1,9 +1,9 @@
 #![allow(unused)]
 use lazy_static::lazy_static; 
 use std::time::{Duration, Instant};
-use std::thread;
 use futures::executor::block_on;
 use async_std::{task};
+use std::fmt;
 
 const PIECE_SIZE : usize = 4;
 type LayoutValues = [[u32; PIECE_SIZE]; PIECE_SIZE];
@@ -27,6 +27,7 @@ struct Piece
     orientations: Vec<Layout>,
 }
 
+#[derive(Debug)]
 struct Board
 {
     values : [[u32; 7]; 7],
@@ -63,27 +64,6 @@ impl Board
         b[(day / 7 + 2) as usize][(day % 7) as usize] = DAY_VALUE;
 
         Board { values : b }
-    }
-
-    fn print(&self)
-    {
-        for row in self.values
-        {
-            for value in row
-            {
-                match value
-                {
-                    0 => print!("."),
-                    WALL_VALUE => print!("X"),
-                    DAY_VALUE => print!("D"),
-                    MONTH_VALUE => print!("M"),
-                    _ => print!("{}", value),
-                }
-                print!(" ");
-            }
-
-            println!();
-        }
     }
 
     fn place_layout(&mut self, layout: &Layout, at_x: usize, at_y: usize,) -> bool
@@ -128,6 +108,31 @@ impl Board
                 self.values[y + at_y][x + at_x] -= layout.values[y][x];
             }
         } 
+    }
+}
+
+ // Enable print! for Board
+ impl fmt::Display for Board {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for row in self.values
+        {
+            for value in row
+            {
+                match value
+                {
+                    0 => write!(f, "."),
+                    WALL_VALUE => write!(f, "X"),
+                    DAY_VALUE => write!(f, "D"),
+                    MONTH_VALUE => write!(f, "M"),
+                    _ => write!(f, "{}", value),
+                };
+                write!(f, " ");
+            }
+
+            writeln!(f);
+        }
+
+        Ok(())
     }
 }
 
@@ -314,7 +319,7 @@ fn recurse( piece_index : usize, board : & mut Board ) -> bool
             {
               /*  if piece_index >= 6
                 {
-                    board.print();
+                    println!("{}", board);
                     println!();
                 }*/
 
@@ -336,11 +341,9 @@ fn recurse( piece_index : usize, board : & mut Board ) -> bool
 
 async fn solve( day: u32, month: u32 ) -> ( bool, Board ) 
 {
-    let mut b = Board::new( day, month );
+    let mut board = Board::new( day, month );
 
-    let result = recurse(0, & mut b);
-
-    (result, b)
+    (recurse(0, & mut board), board)
 }
 
 async fn async_main()
@@ -357,8 +360,16 @@ async fn async_main()
 
     for result in v
     {
-        println!("Month {}, Day {}", result.0, result.1);
-        result.2.await.1.print();
+        let solution = result.2.await;
+        if(solution.0)
+        {
+            println!("Month {}, Day {}", result.0, result.1);
+            println!("{}", solution.1)
+        }
+        else
+        {
+            println!("Month {}, Day {} - No solution found!", result.0, result.1);
+        }
         println!();
     }
 }
@@ -370,5 +381,4 @@ fn main() {
     block_on(async_main());
 
     println!("Runtime took {} seconds.", now.elapsed().as_millis() as f64 / 1000.0 );
-
 }
