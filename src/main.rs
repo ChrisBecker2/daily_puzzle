@@ -1,3 +1,5 @@
+// (c) 2022 Chris Becker
+
 use lazy_static::lazy_static; 
 use std::time::{Instant};
 use futures::executor::block_on;
